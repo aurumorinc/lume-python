@@ -1,14 +1,16 @@
 # python-logging
 
-Org-level Python logging package providing structured, environment-aware logging with OpenTelemetry and Windmill integrations. Built on top of `structlog`, `rich`, and `opentelemetry`.
+Org-level Python logging package providing structured, environment-agnostic logging with decoupled transports, OpenTelemetry, and Windmill integrations. Built on top of `structlog`, `rich`, and `opentelemetry`.
 
 ## Features
 
 - **Structured Logging**: Powered by `structlog` for consistent, machine-readable logs.
-- **Environment-Aware**: Automatically adapts log output based on the environment (`dev`, `prod`, `cli`).
+- **Environment-Agnostic**: The logging package does not care about the deployment environment (`dev`, `prod`, etc.). It only cares about the requested `STDOUT_FORMAT` and active transports.
+- **Decoupled Transports**: 
+  - **Terminal Transport (stdout)**: Always active. Formatted according to `STDOUT_FORMAT`.
+  - **OTLP Transport (Network)**: Active if OpenTelemetry endpoints are configured.
 - **OpenTelemetry Integration**: Automatically injects `trace_id` and `span_id` into log records and supports exporting logs via OTLP.
 - **Windmill Integration**: Extracts trace context from the `TRACEPARENT` environment variable as a fallback.
-- **Rich CLI Output**: Beautiful, readable terminal output with tracebacks using `rich`.
 - **Configuration via Env Vars**: Easy configuration using `pydantic-settings`.
 
 ## Installation
@@ -26,7 +28,7 @@ Configuration is handled via environment variables (or a `.env` file) using `pyd
 | Environment Variable | Default | Description |
 | :--- | :--- | :--- |
 | `LOG_LEVEL` | `INFO` | The logging level (e.g., `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). |
-| `ENVIRONMENT` | `dev` | The execution environment. Must be one of: `dev`, `prod`, `cli`. |
+| `STDOUT_FORMAT` | `ConsoleRenderer` | The format for the stdout transport. Must be one of: `ConsoleRenderer`, `rich`. |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `None` | The OTLP endpoint for exporting logs (and other telemetry). |
 | `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` | `None` | The specific OTLP endpoint for exporting logs. |
 | `TRACEPARENT` | `None` | W3C Trace Context string, used by Windmill for distributed tracing. |
@@ -108,17 +110,17 @@ logger = get_logger(__name__)
 logger.info("running_in_windmill")
 ```
 
-## Environments & Log Output Examples
+## Stdout Formats & Log Output Examples
 
-The output format changes drastically based on the `ENVIRONMENT` variable to best suit the execution context.
+The output format for the terminal transport is controlled by the `STDOUT_FORMAT` variable.
 
-### Development (`ENVIRONMENT=dev`)
+### ConsoleRenderer (`STDOUT_FORMAT=ConsoleRenderer`)
 
-Optimized for local development. Uses `structlog.dev.ConsoleRenderer` to provide colorized, easy-to-read output in the terminal.
+Optimized for servers (like FastAPI) and workers (like Windmill). Uses `structlog.dev.ConsoleRenderer` to provide colorized, easy-to-read output with clear key-value pairs.
 
 **Configuration:**
 ```bash
-export ENVIRONMENT=dev
+export STDOUT_FORMAT=ConsoleRenderer
 export LOG_LEVEL=DEBUG
 ```
 
@@ -135,33 +137,13 @@ logger.info("user_created", user_id=42)
 ```
 *(Note: The actual output will be colorized in your terminal)*
 
-### Production (`ENVIRONMENT=prod`)
+### Rich (`STDOUT_FORMAT=rich`)
 
-Optimized for log aggregators (Datadog, ELK, Splunk, etc.). Uses `structlog.processors.JSONRenderer` to output strict JSON.
-
-**Configuration:**
-```bash
-export ENVIRONMENT=prod
-export LOG_LEVEL=INFO
-```
-
-**Code:**
-```python
-logger.info("payment_processed", amount=100.00, currency="USD", order_id="ord-789")
-```
-
-**Output Example:**
-```json
-{"amount": 100.0, "currency": "USD", "order_id": "ord-789", "level": "info", "logger": "my_module", "timestamp": "2026-05-20T14:35:22.987654Z", "event": "payment_processed"}
-```
-
-### CLI (`ENVIRONMENT=cli`)
-
-Optimized for command-line interfaces and scripts where you want beautiful, rich formatting for the end-user. Uses `rich.logging.RichHandler`.
+Optimized for command-line interfaces (CLI apps like Typer) where you want beautiful, rich formatting for the end-user. Uses `rich.logging.RichHandler`.
 
 **Configuration:**
 ```bash
-export ENVIRONMENT=cli
+export STDOUT_FORMAT=rich
 export LOG_LEVEL=INFO
 ```
 

@@ -5,24 +5,27 @@ from typing import Optional
 import structlog
 from opentelemetry.sdk._logs import LoggingHandler
 
-from python_logging.config import settings
-from python_logging.environments import get_cli_config, get_dev_config, get_prod_config
+from python_logging.config import LoggingSettings, StdoutFormat, settings as default_settings
+from python_logging.service import get_console_renderer_format, get_rich_format
 from python_logging.integrations.otel import add_otel_context, setup_otel_provider
 
 # Export get_logger for use throughout the application
 get_logger = structlog.get_logger
 
 
-def setup_logging() -> None:
+def setup_logging(settings: Optional[LoggingSettings] = None) -> None:
     """
-    Configures structlog and routes standard logging through it based on the environment.
-    Uses the global settings object from python_logging.config.
+    Configures structlog and routes standard logging through it.
+    Uses the provided settings or the global default settings.
     """
+    if settings is None:
+        settings = default_settings
+
     # Determine log level
     log_level_name = settings.log_level.upper()
     log_level = getattr(logging, log_level_name, logging.INFO)
 
-    # Shared processors for all environments
+    # Shared processors for all formats
     shared_processors = [
         structlog.contextvars.merge_contextvars,
         structlog.stdlib.add_log_level,
@@ -33,17 +36,15 @@ def setup_logging() -> None:
         structlog.processors.format_exc_info,
     ]
 
-    # Get environment-specific processors and handlers
-    if settings.environment == "prod":
-        env_processors, handlers = get_prod_config()
-    elif settings.environment == "cli":
-        env_processors, handlers = get_cli_config()
+    # Get format-specific processors and handlers for the stdout transport
+    if settings.stdout_format == StdoutFormat.RICH:
+        format_processors, handlers = get_rich_format()
     else:
-        env_processors, handlers = get_dev_config()
+        format_processors, handlers = get_console_renderer_format()
 
     # Configure structlog
-    if settings.environment == "cli":
-        structlog_processors = shared_processors + env_processors
+    if settings.stdout_format == StdoutFormat.RICH:
+        structlog_processors = shared_processors + format_processors
     else:
         structlog_processors = shared_processors + [structlog.stdlib.ProcessorFormatter.wrap_for_formatter]
 
@@ -59,19 +60,19 @@ def setup_logging() -> None:
     root_logger.handlers.clear()
     root_logger.setLevel(log_level)
 
-    # Add environment-specific handlers
+    # Add stdout transport handlers
     for handler in handlers:
-        # For non-CLI environments, we need to wrap the handler with structlog's formatter
-        if settings.environment != "cli":
+        # For non-Rich formats, we need to wrap the handler with structlog's formatter
+        if settings.stdout_format != StdoutFormat.RICH:
             formatter = structlog.stdlib.ProcessorFormatter(
-                processor=env_processors[0],
+                processor=format_processors[0],
                 foreign_pre_chain=shared_processors,
             )
             handler.setFormatter(formatter)
         
         root_logger.addHandler(handler)
 
-    # Setup OpenTelemetry OTLP handler if configured
+    # Setup OpenTelemetry OTLP transport if configured
     logger_provider = setup_otel_provider()
     if logger_provider:
         otlp_handler = LoggingHandler(level=log_level, logger_provider=logger_provider)
