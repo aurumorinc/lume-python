@@ -13,11 +13,11 @@ def test_default_settings():
     assert settings.stdout_format == StdoutFormat.CONSOLE_RENDERER
     assert settings.otel_exporter_otlp_endpoint is None
     assert settings.otel_exporter_otlp_logs_endpoint is None
-    
+
     # Verify traceparent is generated and matches W3C format
     assert settings.traceparent is not None
     assert re.match(r"^00-[0-9a-f]{32}-[0-9a-f]{16}-01$", settings.traceparent)
-    
+
     # Verify computed fields
     parts = settings.traceparent.split("-")
     assert settings.trace_id == parts[1]
@@ -59,8 +59,7 @@ def test_settings_from_windmill_env():
     """Test that settings correctly fallback to WM_TRACEPARENT."""
     settings = LoggingSettings()
     assert (
-        settings.traceparent
-        == "00-windmilltraceid1234567890123456-windmillspanid12-01"
+        settings.traceparent == "00-windmilltraceid1234567890123456-windmillspanid12-01"
     )
     assert settings.trace_id == "windmilltraceid1234567890123456"
     assert settings.span_id == "windmillspanid12"
