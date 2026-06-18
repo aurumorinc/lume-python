@@ -2,7 +2,11 @@ import logging
 from unittest import mock
 
 
-from python_logging.service import add_otel_context, setup_otel_provider
+from python_logging.service import (
+    add_otel_context,
+    remove_otel_context,
+    setup_otel_provider,
+)
 
 
 def test_add_otel_context_with_active_span():
@@ -53,3 +57,25 @@ def test_setup_otel_provider_with_endpoint(mock_settings):
     mock_settings.otel_exporter_otlp_logs_endpoint = None
     provider = setup_otel_provider()
     assert provider is not None
+
+
+def test_remove_otel_context():
+    event_dict = {
+        "event": "test message",
+        "trace_id": "test_trace_id",
+        "span_id": "test_span_id",
+        "other_key": "value",
+    }
+    
+    result = remove_otel_context(logging.getLogger(), "info", event_dict)
+    
+    # Verify the keys were removed in the result
+    assert "trace_id" not in result
+    assert "span_id" not in result
+    assert result["event"] == "test message"
+    assert result["other_key"] == "value"
+    
+    # Verify the original dictionary was NOT mutated
+    assert "trace_id" in event_dict
+    assert "span_id" in event_dict
+

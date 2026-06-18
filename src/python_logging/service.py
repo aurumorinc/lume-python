@@ -14,12 +14,26 @@ from rich.logging import RichHandler
 from python_logging.config import settings
 
 
+def remove_otel_context(
+    logger: logging.Logger, method_name: str, event_dict: Dict[str, Any]
+) -> Dict[str, Any]:
+    """
+    Removes trace_id and span_id from the event dictionary.
+    Used for console and rich formatters to prevent polluting terminal output.
+    """
+    event_dict = event_dict.copy()
+    event_dict.pop("trace_id", None)
+    event_dict.pop("span_id", None)
+    return event_dict
+
+
 def get_console_renderer_format() -> Tuple[List[Any], List[logging.Handler]]:
     """
     Returns processors and handlers for the ConsoleRenderer format.
     Uses a colorized console renderer optimized for servers and workers.
     """
     processors = [
+        remove_otel_context,
         structlog.dev.ConsoleRenderer(colors=True),
     ]
 
@@ -36,6 +50,7 @@ def get_rich_format() -> Tuple[List[Any], List[logging.Handler]]:
     # For RichHandler, we don't want structlog to format the final string,
     # we want it to pass the event dict to standard logging, which RichHandler intercepts.
     processors = [
+        remove_otel_context,
         structlog.stdlib.render_to_log_kwargs,
     ]
 
