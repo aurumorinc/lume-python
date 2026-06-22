@@ -219,3 +219,12 @@ __marimo__/
 
 # Agent
 /plans
+
+# Rune
+.rune/*
+!.rune/config
+!.rune/index
+.agents/skills/posthog-python/modules/posthog-python
+.agents/skills/posthog/modules/posthog-python
+.agents/skills/sentry/modules/sentry-python
+.agents/skills/windmill/modules/windmill
