@@ -1,5 +1,5 @@
 # src/python_logging/__init__.py
-__version__ = "26.6.5"
+__version__ = "26.6.6"
 
 from python_logging import config
 from python_logging import integrations

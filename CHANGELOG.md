@@ -2,11 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [26.6.6] - 2026-06-22
+
+### ⚙️ Miscellaneous Tasks
+
+- Update dependencies and add colorama
+
 ## [26.6.5] - 2026-06-19
 
 ### 🧪 Testing
 
 - Add integration test for clean console logs
+
+### ⚙️ Miscellaneous Tasks
+
+- Release 26.6.5
 
 ## [26.6.4] - 2026-06-19
 
