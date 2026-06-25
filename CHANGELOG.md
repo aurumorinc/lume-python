@@ -1,9 +1,8 @@
-# Changelog v1.1.0
+# Changelog v2.0.0
 
-## Features
+## Breaking Changes
 
-### Structlog Telemetry Integration
-*   Implemented a centralized, zero-config `structlog` proxy to unify logging, OpenTelemetry, Sentry, PostHog, and Langfuse, replacing legacy logging modules.
-*   Added comprehensive unit tests covering initialization, idempotency, and processor logic to ensure stable telemetry delivery.
-*   Introduced a new agent skill specifically designed to provide development support for `structlog` configurations.
-*   Commits: [0615556](https://github.com/aurumorinc/lume-python/commit/0615556d), [e14e397](https://github.com/aurumorinc/lume-python/commit/e14e3979), [2ed31e6](https://github.com/aurumorinc/lume-python/commit/2ed31e67)
+* **Renaming of Windmill Configuration Fields**
+  Windmill configuration fields have been updated to use full naming conventions instead of abbreviations to improve clarity and consistency. This change will cause existing configurations to fail if not updated.
+  * **Migration:** Identify all abbreviated configuration keys in your configuration files or environment variables and update them to the new full-name equivalents as defined in the updated documentation.
+  * **Commits:** [1ed4b43](https://github.com/aurumorinc/lume-python/commit/1ed4b438), [a4bb86d](https://github.com/aurumorinc/lume-python/commit/a4bb86da)
