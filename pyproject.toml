@@ -1,6 +1,6 @@
 [project]
-name = "python-logging"
-version = "26.6.7"
+name = "lume"
+version = "0.1.0"
 description = "Org-level Python logging package"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -12,6 +12,9 @@ dependencies = [
     "opentelemetry-sdk>=1.20.0",
     "opentelemetry-exporter-otlp>=1.20.0",
     "colorama>=0.4.6",
+    "sentry-sdk>=3.0.0a7",
+    "posthog>=7.20.3",
+    "langfuse>=4.10.0",
 ]
 
 [build-system]
@@ -24,11 +27,14 @@ dev = [
     "pytest-cov>=4.0.0",
     "mkinit>=1.2.0",
     "ruff>=0.15.16",
+    "hypothesis>=6.0.0",
+    "pytest-xdist>=3.0.0",
+    "pyrefly>=1.1.1",
 ]
 
 [tool.bumpver]
-current_version = "26.6.7"
-version_pattern = "YY.MM.INC0"
+current_version = "0.1.0"
+version_pattern = "MAJOR.MICRO.PATCH"
 commit = false
 tag = false
 push = false
@@ -37,6 +43,6 @@ push = false
 "pyproject.toml" = [
     'version = "{version}"',
 ]
-"src/python_logging/__init__.py" = [
+"src/lume/__init__.py" = [
     '__version__ = "{version}"',
 ]

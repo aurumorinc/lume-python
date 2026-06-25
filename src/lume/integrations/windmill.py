@@ -1,4 +1,4 @@
-# src/python_logging/integrations/windmill.py
+# src/lume/integrations/windmill.py
 import os
 from typing import Optional
 

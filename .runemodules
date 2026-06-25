@@ -10,3 +10,6 @@
 [runemodule ".agents/skills/windmill/modules/windmill"]
 	url = https://github.com/windmill-labs/windmill/tree/main
 	path = .agents/skills/windmill/modules/windmill
+[runemodule ".agents/skills/langfuse-python/modules/langfuse-python"]
+	url = https://github.com/langfuse/langfuse-python/tree/main
+	path = .agents/skills/langfuse-python/modules/langfuse-python

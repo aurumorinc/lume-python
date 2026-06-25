@@ -1,6 +1,5 @@
-# src/python_logging/config.py
+# src/lume/config.py
 import secrets
-from enum import Enum
 from typing import Optional
 
 from pydantic import Field, computed_field
@@ -20,7 +19,7 @@ def resolve_traceparent() -> str:
     1. Windmill environment variable (WM_TRACEPARENT)
     2. Generated fallback
     """
-    from python_logging.integrations.windmill import get_windmill_traceparent
+    from lume.integrations.windmill import get_windmill_traceparent
 
     wm_tp = get_windmill_traceparent()
     if wm_tp:
@@ -28,27 +27,39 @@ def resolve_traceparent() -> str:
     return generate_traceparent()
 
 
-class StdoutFormat(str, Enum):
-    CONSOLE_RENDERER = "ConsoleRenderer"
-    RICH = "rich"
-
-
 class LoggingSettings(BaseSettings):
-    """Configuration for the python-logging package."""
+    """Configuration for the lume package."""
 
     log_level: str = "INFO"
-    stdout_format: StdoutFormat = StdoutFormat.CONSOLE_RENDERER
     otel_exporter_otlp_endpoint: Optional[str] = None
     otel_exporter_otlp_logs_endpoint: Optional[str] = None
     traceparent: str = Field(default_factory=resolve_traceparent)
 
-    @computed_field
+    sentry_dsn: Optional[str] = None
+
+    posthog_api_key: Optional[str] = None
+    posthog_host: str = "https://us.i.posthog.com"
+
+    langfuse_public_key: Optional[str] = None
+    langfuse_secret_key: Optional[str] = None
+    langfuse_host: str = "https://cloud.langfuse.com"
+
+    wm_token: Optional[str] = None
+    wm_workspace: Optional[str] = None
+    wm_base_url: Optional[str] = None
+
+    @computed_field  # type: ignore
+    @property
+    def is_windmill_env(self) -> bool:
+        return bool(self.wm_token and self.wm_workspace)
+
+    @computed_field  # type: ignore
     @property
     def trace_id(self) -> str:
         """Extracts the trace_id from the traceparent."""
         return self.traceparent.split("-")[1]
 
-    @computed_field
+    @computed_field  # type: ignore
     @property
     def span_id(self) -> str:
         """Extracts the span_id from the traceparent."""

@@ -1,19 +1,17 @@
-# src/python_logging/main.py
+# src/lume/logging.py
 import logging
 from typing import Optional
 
 import structlog
 from opentelemetry.sdk._logs import LoggingHandler
 
-from python_logging.config import (
+from lume.config import (
     LoggingSettings,
-    StdoutFormat,
     settings as default_settings,
 )
-from python_logging.service import (
+from lume.service import (
     add_otel_context,
-    get_console_renderer_format,
-    get_rich_format,
+    get_console_format,
     setup_otel_provider,
 )
 
@@ -24,39 +22,56 @@ get_logger = structlog.get_logger
 def setup_logging(settings: Optional[LoggingSettings] = None) -> None:
     """
     Configures structlog and routes standard logging through it.
-    Uses the provided settings or the global default settings.
+    Also initializes Sentry, PostHog, Langfuse, and OpenTelemetry (if in Windmill).
     """
     if settings is None:
         settings = default_settings
+
+    # 1. Sentry Setup
+    if settings.sentry_dsn:
+        from lume.integrations.sentry import sentry_sdk
+
+        sentry_sdk.init(dsn=settings.sentry_dsn)
+
+    # 2. PostHog Setup
+    if settings.posthog_api_key:
+        from lume.integrations.posthog import posthog
+
+        posthog.project_api_key = settings.posthog_api_key
+        posthog.host = settings.posthog_host
+
+    # 3. Langfuse Setup
+    if settings.langfuse_public_key:
+        from lume.integrations.langfuse import langfuse
+
+        langfuse.Langfuse(
+            public_key=settings.langfuse_public_key,
+            secret_key=settings.langfuse_secret_key,
+            host=settings.langfuse_host,
+        )
 
     # Determine log level
     log_level_name = settings.log_level.upper()
     log_level = getattr(logging, log_level_name, logging.INFO)
 
-    # Shared processors for all formats
-    shared_processors = [
+    # Shared processors
+    from typing import List, Any
+
+    shared_processors: List[Any] = [
         structlog.contextvars.merge_contextvars,
         structlog.stdlib.add_log_level,
         structlog.stdlib.add_logger_name,
         add_otel_context,
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.StackInfoRenderer(),
-        structlog.processors.format_exc_info,
     ]
 
-    # Get format-specific processors and handlers for the stdout transport
-    if settings.stdout_format == StdoutFormat.RICH:
-        format_processors, handlers = get_rich_format()
-    else:
-        format_processors, handlers = get_console_renderer_format()
+    format_processors, handlers = get_console_format()
 
     # Configure structlog
-    if settings.stdout_format == StdoutFormat.RICH:
-        structlog_processors = shared_processors + format_processors
-    else:
-        structlog_processors = shared_processors + [
-            structlog.stdlib.ProcessorFormatter.wrap_for_formatter
-        ]
+    structlog_processors = shared_processors + [
+        structlog.stdlib.ProcessorFormatter.wrap_for_formatter
+    ]
 
     structlog.configure(
         processors=structlog_processors,
@@ -72,18 +87,15 @@ def setup_logging(settings: Optional[LoggingSettings] = None) -> None:
 
     # Add stdout transport handlers
     for handler in handlers:
-        # For non-Rich formats, we need to wrap the handler with structlog's formatter
-        if settings.stdout_format != StdoutFormat.RICH:
-            formatter = structlog.stdlib.ProcessorFormatter(
-                processors=format_processors,
-                foreign_pre_chain=shared_processors,
-            )
-            handler.setFormatter(formatter)
-
+        formatter = structlog.stdlib.ProcessorFormatter(
+            processors=format_processors,
+            foreign_pre_chain=shared_processors,
+        )
+        handler.setFormatter(formatter)
         root_logger.addHandler(handler)
 
-    # Setup OpenTelemetry OTLP transport if configured
-    logger_provider = setup_otel_provider()
+    # 4. Windmill OTEL Logic
+    logger_provider = setup_otel_provider(settings)
     if logger_provider:
         otlp_handler = LoggingHandler(level=log_level, logger_provider=logger_provider)
         root_logger.addHandler(otlp_handler)

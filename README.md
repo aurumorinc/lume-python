@@ -1,16 +1,16 @@
-# python-logging
+# Lume
 
-Org-level Python logging package providing structured, environment-agnostic logging with decoupled transports, OpenTelemetry, and Windmill integrations. Built on top of `structlog`, `rich`, and `opentelemetry`.
+Lume is a unified observability and telemetry bootstrapper for Python. It provides structured, environment-agnostic logging alongside native vendor facades for Sentry, PostHog, Langfuse, and OpenTelemetry. Built on top of `structlog`, `rich`, and `opentelemetry`, Lume allows you to configure your entire observability stack with a single function call while maintaining direct access to underlying native SDKs.
 
 ## Features
 
+- **Unified Bootstrapper**: One call to `setup_logging()` configures your entire telemetry stack (Logging, Sentry, PostHog, Langfuse, and OpenTelemetry) based on the presence of environment variables.
+- **Submodule Vendor Re-export**: Access Sentry, PostHog, and Langfuse natively directly through `lume` (e.g., `from lume import sentry_sdk`). This preserves original typings and API surfaces while keeping dependency versions centralized in this package.
 - **Structured Logging**: Powered by `structlog` for consistent, machine-readable logs.
-- **Environment-Agnostic**: The logging package does not care about the deployment environment (`dev`, `prod`, etc.). It only cares about the requested `STDOUT_FORMAT` and active transports.
 - **Decoupled Transports**: 
-  - **Terminal Transport (stdout)**: Always active. Formatted according to `STDOUT_FORMAT`.
-  - **OTLP Transport (Network)**: Active if OpenTelemetry endpoints are configured.
-- **OpenTelemetry Integration**: Automatically injects `trace_id` and `span_id` into log records and supports exporting logs via OTLP.
-- **Windmill Integration**: Extracts trace context from the `TRACEPARENT` environment variable as a fallback.
+  - **Terminal Transport (stdout)**: Always active, beautifully formatted with `rich`.
+  - **Bifurcated OpenTelemetry (Network)**: OTLP exporters spin up *strictly* when running inside Windmill (detected via `WM_TOKEN` and `WM_WORKSPACE`), ensuring no idle exporters in local/dev environments.
+- **Context Injection**: Automatically injects `trace_id` and `span_id` from OpenTelemetry into log records.
 - **Configuration via Env Vars**: Easy configuration using `pydantic-settings`.
 
 ## Installation
@@ -21,6 +21,8 @@ You can install this package directly from the GitHub repository using `pip`:
 pip install git+https://github.com/aurumorinc/python-logging.git
 ```
 
+*(Note: While the repository is `python-logging`, the importable package is `lume`)*
+
 ## Configuration
 
 Configuration is handled via environment variables (or a `.env` file) using `pydantic-settings`.
@@ -28,23 +30,30 @@ Configuration is handled via environment variables (or a `.env` file) using `pyd
 | Environment Variable | Default | Description |
 | :--- | :--- | :--- |
 | `LOG_LEVEL` | `INFO` | The logging level (e.g., `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). |
-| `STDOUT_FORMAT` | `ConsoleRenderer` | The format for the stdout transport. Must be one of: `ConsoleRenderer`, `rich`. |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `None` | The OTLP endpoint for exporting logs (and other telemetry). |
-| `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` | `None` | The specific OTLP endpoint for exporting logs. |
-| `TRACEPARENT` | `None` | W3C Trace Context string, used by Windmill for distributed tracing. |
+| `SENTRY_DSN` | `None` | The DSN for Sentry. If provided, Sentry will be automatically initialized. |
+| `POSTHOG_API_KEY` | `None` | Project API Key for PostHog. If provided, PostHog will be automatically configured. |
+| `POSTHOG_HOST` | `https://us.i.posthog.com` | Host URL for PostHog. |
+| `LANGFUSE_PUBLIC_KEY` | `None` | Public Key for Langfuse. |
+| `LANGFUSE_SECRET_KEY` | `None` | Secret Key for Langfuse. If both keys are provided, Langfuse is initialized. |
+| `LANGFUSE_HOST` | `https://cloud.langfuse.com` | Host URL for Langfuse. |
+| `WM_TOKEN` | `None` | Windmill Workspace Token. Required for Windmill OTEL. |
+| `WM_WORKSPACE` | `None` | Windmill Workspace Name. Required for Windmill OTEL. |
+| `WM_BASE_URL` | `None` | Base URL for Windmill, used for resolving OTEL endpoints. |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `None` | Fallback OTLP endpoint for exporting traces. |
+| `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`| `None` | Fallback specific OTLP endpoint for exporting logs. |
 
 ## Usage
 
-**CRITICAL RULE:** You must call `setup_logging()` **exactly once** at the very entry point of your application (e.g., in your `main.py`, `app.py`, or CLI entry script). Because it configures the global logging state, you do *not* need to call it in every file. In all other files, simply import and use `get_logger(__name__)`.
+**CRITICAL RULE:** You must call `setup_logging()` **exactly once** at the very entry point of your application (e.g., in your `main.py`, `app.py`, or CLI entry script). Because it configures the global logging and observability state, you do *not* need to call it in every file.
 
 ### Integrating with Project Settings (Pydantic)
 
-If your project already uses `pydantic-settings`, you can easily merge the logging configuration into your main settings class by inheriting from `LoggingSettings`. This allows you to validate all environment variables (both app-specific and logging-specific) in one place.
+If your project already uses `pydantic-settings`, you can easily merge the telemetry configuration into your main settings class by inheriting from `LoggingSettings`. This allows you to validate all environment variables (both app-specific and logging-specific) in one place.
 
 ```python
 from pydantic_settings import BaseSettings
-from python_logging.config import LoggingSettings
-from python_logging.main import setup_logging
+from lume.config import LoggingSettings
+from lume.logging import setup_logging
 
 # Inherit from LoggingSettings to include logging configuration
 class AppSettings(LoggingSettings, BaseSettings):
@@ -58,19 +67,19 @@ settings = AppSettings()
 setup_logging(settings)
 ```
 
-### Basic Usage
+### Basic Logging Usage
 
 **In your entry point file (e.g., `main.py`):**
 ```python
-from python_logging.main import setup_logging
+from lume.logging import setup_logging
 
-# 1. Initialize global logging state (call this exactly once)
+# 1. Initialize global logging and telemetry state (call exactly once)
 setup_logging()
 ```
 
 **In any other file in your project:**
 ```python
-from python_logging.main import get_logger
+from lume.logging import get_logger
 
 # 2. Get a logger instance for this module
 logger = get_logger(__name__)
@@ -89,7 +98,7 @@ except ZeroDivisionError:
 You can bind context variables to a logger so they are included in all subsequent log calls from that logger.
 
 ```python
-from python_logging.main import get_logger
+from lume.logging import get_logger
 
 logger = get_logger(__name__).bind(request_id="req-abc-123")
 
@@ -100,77 +109,37 @@ logger.info("request_completed", status=200)
 # Includes: request_id="req-abc-123", status=200
 ```
 
-### OpenTelemetry Integration
+### Vendor Facades
 
-If you are using OpenTelemetry for distributed tracing, `python-logging` will automatically extract the active `trace_id` and `span_id` and inject them into your log records.
-
-If you configure `OTEL_EXPORTER_OTLP_ENDPOINT` or `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`, logs will also be exported to your OTLP collector automatically.
+`lume` exports Sentry, PostHog, and Langfuse directly. You do not need to install these dependencies manually in your consumer application; they are natively managed and exposed by `lume`.
 
 ```python
-from opentelemetry import trace
-from python_logging.main import setup_logging, get_logger
+from lume import sentry_sdk, posthog, langfuse, observe
 
-setup_logging()
-logger = get_logger(__name__)
-tracer = trace.get_tracer(__name__)
+# Sentry
+sentry_sdk.capture_message("Something went wrong")
 
-with tracer.start_as_current_span("my_operation"):
-    # This log will automatically include trace_id and span_id
-    logger.info("operation_started")
+# PostHog
+posthog.capture("user_123", "event_name", properties={"key": "value"})
+
+# Langfuse (via decorator)
+@observe(as_type="generation")
+def my_llm_call(prompt):
+    return "LLM Response"
 ```
 
-### Windmill Integration
+### OpenTelemetry & Windmill Integration
 
-When running inside Windmill, OpenTelemetry spans might not be actively managed in the Python process, but Windmill passes the trace context via the `TRACEPARENT` environment variable. `python-logging` automatically detects this and injects the `trace_id` and `span_id` into your logs.
+If you configure `WM_TOKEN` and `WM_WORKSPACE`, logs and traces will automatically be exported to the Windmill platform.
 
-```bash
-export TRACEPARENT="00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"
-```
+`lume` will also automatically extract the active `trace_id` and `span_id` and inject them into your log records. When running inside Windmill, it automatically extracts tracing contexts from the environment.
 
-```python
-from python_logging.main import setup_logging, get_logger
+## Terminal Output
 
-setup_logging()
-logger = get_logger(__name__)
-
-# This log will include trace_id="0af7651916cd43dd8448eb211c80319c" and span_id="b7ad6b7169203331"
-logger.info("running_in_windmill")
-```
-
-## Stdout Formats & Log Output Examples
-
-The output format for the terminal transport is controlled by the `STDOUT_FORMAT` variable.
-
-### ConsoleRenderer (`STDOUT_FORMAT=ConsoleRenderer`)
-
-Optimized for servers (like FastAPI) and workers (like Windmill). Uses `structlog.dev.ConsoleRenderer` to provide colorized, easy-to-read output with clear key-value pairs.
+Lume uses `rich.logging.RichHandler` for beautiful, structured formatting in the terminal.
 
 **Configuration:**
 ```bash
-export STDOUT_FORMAT=ConsoleRenderer
-export LOG_LEVEL=DEBUG
-```
-
-**Code:**
-```python
-logger.debug("database_query", table="users", duration_ms=15.2)
-logger.info("user_created", user_id=42)
-```
-
-**Output Example:**
-```text
-2026-05-20T14:32:10.123456Z [debug    ] database_query                 duration_ms=15.2 table=users
-2026-05-20T14:32:10.124567Z [info     ] user_created                   user_id=42
-```
-*(Note: The actual output will be colorized in your terminal)*
-
-### Rich (`STDOUT_FORMAT=rich`)
-
-Optimized for command-line interfaces (CLI apps like Typer) where you want beautiful, rich formatting for the end-user. Uses `rich.logging.RichHandler`.
-
-**Configuration:**
-```bash
-export STDOUT_FORMAT=rich
 export LOG_LEVEL=INFO
 ```
 
@@ -185,20 +154,20 @@ logger.warning("Rate limit approaching", current=95, max=100)
 [14:38:01] INFO     Starting data synchronization...
            WARNING  Rate limit approaching                             current=95 max=100
 ```
-*(Note: The actual output will be beautifully formatted and colorized by `rich`, with aligned timestamps and levels)*
+*(Note: The actual output will be beautifully formatted and colorized by `rich`, with aligned timestamps, levels, and structured key-value pairs)*
 
 ## Development
 
 To set up the project for development:
 
 1. Ensure you have Python 3.11+ installed.
-2. Install dependencies (using `pdm`, `hatch`, or `pip`):
+2. Install dependencies (using `pdm`):
    ```bash
-   pip install -e ".[dev]"
+   pdm install
    ```
 3. Run tests:
    ```bash
-   pytest
+   pdm run pytest
    ```
 
 ## Release Process
