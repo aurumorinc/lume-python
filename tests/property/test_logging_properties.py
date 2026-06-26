@@ -2,7 +2,7 @@ import logging
 from unittest import mock
 from hypothesis import given, strategies as st
 
-from lume.service import add_otel_context, remove_otel_context
+from worldline.service import add_otel_context, remove_otel_context
 
 
 @given(
@@ -31,7 +31,7 @@ def test_remove_otel_context_never_crashes(event_dict):
             assert result[key] == value
 
 
-@mock.patch("lume.service.settings")
+@mock.patch("worldline.service.settings")
 @given(
     st.dictionaries(
         st.text(), st.text() | st.integers() | st.none() | st.floats(allow_nan=False)
@@ -47,7 +47,7 @@ def test_add_otel_context_never_crashes(mock_settings, event_dict):
     mock_settings.span_id = "test_span_id"
     input_dict = event_dict.copy()
 
-    with mock.patch("lume.service.trace.get_current_span", return_value=None):
+    with mock.patch("worldline.service.trace.get_current_span", return_value=None):
         # Act
         result = add_otel_context(logging.getLogger(), "info", input_dict)
 

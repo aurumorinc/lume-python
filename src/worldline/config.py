@@ -1,4 +1,4 @@
-# src/lume/config.py
+# src/worldline/config.py
 import secrets
 from typing import Optional
 
@@ -19,7 +19,7 @@ def resolve_traceparent() -> str:
     1. Windmill environment variable (WM_TRACEPARENT)
     2. Generated fallback
     """
-    from lume.integrations.windmill import get_windmill_traceparent
+    from worldline.integrations.windmill import get_windmill_traceparent
 
     windmill_tp = get_windmill_traceparent()
     if windmill_tp:

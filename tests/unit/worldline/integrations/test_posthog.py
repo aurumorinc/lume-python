@@ -1,6 +1,6 @@
 def test_posthog_facade_re_exported() -> None:
-    from lume import posthog as top_level_posthog
-    from lume.integrations import posthog as integrations_posthog
+    from worldline import posthog as top_level_posthog
+    from worldline.integrations import posthog as integrations_posthog
 
     import posthog as real_posthog
 

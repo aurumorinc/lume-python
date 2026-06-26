@@ -1,4 +1,4 @@
-# src/lume/integrations/langfuse/__init__.py
+# src/worldline/integrations/langfuse/__init__.py
 import langfuse
 from langfuse import observe
 

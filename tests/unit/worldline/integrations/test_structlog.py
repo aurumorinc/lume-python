@@ -4,55 +4,55 @@ from unittest import mock
 
 import pytest
 
-from lume.integrations import structlog as lume_structlog
+from worldline.integrations import structlog as worldline_structlog
 
 
 @pytest.fixture(autouse=True)
 def reset_structlog_state():
     """Reset the module-level state before and after each test."""
-    lume_structlog._LUME_CONFIGURED = False
-    lume_structlog.reset_defaults()
+    worldline_structlog._WORLDLINE_CONFIGURED = False
+    worldline_structlog.reset_defaults()
     logging.getLogger().handlers.clear()
     yield
-    lume_structlog._LUME_CONFIGURED = False
-    lume_structlog.reset_defaults()
+    worldline_structlog._WORLDLINE_CONFIGURED = False
+    worldline_structlog.reset_defaults()
     logging.getLogger().handlers.clear()
 
 
-@mock.patch("lume.integrations.structlog._original_structlog.configure", spec=True)
-@mock.patch("lume.service.setup_otel_provider", spec=True)
+@mock.patch("worldline.integrations.structlog._original_structlog.configure", spec=True)
+@mock.patch("worldline.service.setup_otel_provider", spec=True)
 def test_auto_initialization(mock_setup_otel, mock_configure):
     """Assert that calling get_logger implicitly configures the system."""
     mock_setup_otel.return_value = None
 
     # Initially not configured
-    assert not lume_structlog._LUME_CONFIGURED
+    assert not worldline_structlog._WORLDLINE_CONFIGURED
 
     # Act
-    lume_structlog.get_logger()
+    worldline_structlog.get_logger()
 
     # Assert
-    assert lume_structlog._LUME_CONFIGURED
+    assert worldline_structlog._WORLDLINE_CONFIGURED
     mock_configure.assert_called_once()
 
 
-@mock.patch("lume.integrations.structlog._setup")
+@mock.patch("worldline.integrations.structlog._setup")
 def test_idempotency(mock_setup):
     """Assert that get_logger only runs _setup once."""
 
     # We must patch get_logger directly to not actually call the setup if it was real,
     # wait, we're mocking _setup itself.
-    # The first call will run the real check which is `if not _LUME_CONFIGURED: _setup()`
-    # but _LUME_CONFIGURED will remain False because we mocked _setup!
-    # So we need to have a side effect that sets _LUME_CONFIGURED to True.
+    # The first call will run the real check which is `if not _WORLDLINE_CONFIGURED: _setup()`
+    # but _WORLDLINE_CONFIGURED will remain False because we mocked _setup!
+    # So we need to have a side effect that sets _WORLDLINE_CONFIGURED to True.
     def mock_setup_side_effect(*args, **kwargs):
-        lume_structlog._LUME_CONFIGURED = True
+        worldline_structlog._WORLDLINE_CONFIGURED = True
 
     mock_setup.side_effect = mock_setup_side_effect
 
     # Act
-    lume_structlog.get_logger()
-    lume_structlog.get_logger()
+    worldline_structlog.get_logger()
+    worldline_structlog.get_logger()
 
     # Assert
     mock_setup.assert_called_once()
@@ -66,17 +66,17 @@ def test_additive_configuration():
         return event_dict
 
     # Trigger initialization and initial config
-    lume_structlog.get_logger()
+    worldline_structlog.get_logger()
 
     # Store processors from first run
-    initial_config = lume_structlog.get_config()
+    initial_config = worldline_structlog.get_config()
     initial_processors_len = len(initial_config["processors"])
 
     # Act
-    lume_structlog.configure(processors=[my_processor])
+    worldline_structlog.configure(processors=[my_processor])
 
     # Assert
-    new_config = lume_structlog.get_config()
+    new_config = worldline_structlog.get_config()
     assert len(new_config["processors"]) == initial_processors_len + 1
     # Check that custom processor is placed before the final formatter
     assert new_config["processors"][-2] == my_processor
@@ -86,9 +86,9 @@ def test_proxy_validation():
     """Assert that proxy attributes point to the original structlog counterparts."""
     import structlog
 
-    assert lume_structlog.stdlib is structlog.stdlib
-    assert lume_structlog.processors is structlog.processors
-    assert lume_structlog.PrintLogger is structlog.PrintLogger
+    assert worldline_structlog.stdlib is structlog.stdlib
+    assert worldline_structlog.processors is structlog.processors
+    assert worldline_structlog.PrintLogger is structlog.PrintLogger
 
 
 def test_dynamic_attribute():
@@ -97,13 +97,13 @@ def test_dynamic_attribute():
 
     # make_filtering_bound_logger is in structlog but not explicitly exported in our __all__
     assert (
-        lume_structlog.make_filtering_bound_logger
+        worldline_structlog.make_filtering_bound_logger
         is structlog.make_filtering_bound_logger
     )
 
     # Also test an actually missing attribute
     with pytest.raises(AttributeError):
-        lume_structlog.does_not_exist
+        worldline_structlog.does_not_exist
 
 
 def test_standard_logging_capture():
@@ -113,7 +113,7 @@ def test_standard_logging_capture():
     out = StringIO()
 
     # Trigger auto-setup
-    lume_structlog.get_logger("test_capture")
+    worldline_structlog.get_logger("test_capture")
 
     # Redirect console output for rich handler
     root_logger = logging.getLogger()

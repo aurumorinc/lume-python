@@ -1,4 +1,4 @@
-# src/lume/integrations/structlog.py
+# src/worldline/integrations/structlog.py
 """
 Zero-config drop-in replacement proxy for structlog.
 
@@ -32,9 +32,9 @@ from structlog import (
 )
 
 if TYPE_CHECKING:
-    from lume.config import LoggingSettings
+    from worldline.config import LoggingSettings
 
-_LUME_CONFIGURED = False
+_WORLDLINE_CONFIGURED = False
 
 
 def _setup(settings: Optional["LoggingSettings"] = None) -> None:
@@ -43,31 +43,31 @@ def _setup(settings: Optional["LoggingSettings"] = None) -> None:
     Configures structlog and routes standard logging through it.
     Also initializes Sentry, PostHog, Langfuse, and OpenTelemetry.
     """
-    global _LUME_CONFIGURED
-    if _LUME_CONFIGURED:
+    global _WORLDLINE_CONFIGURED
+    if _WORLDLINE_CONFIGURED:
         return
 
     if settings is None:
-        from lume.config import settings as default_settings
+        from worldline.config import settings as default_settings
 
         settings = default_settings
 
     # 1. Sentry Setup
     if settings.sentry_dsn:
-        from lume.integrations.sentry import sentry_sdk
+        from worldline.integrations.sentry import sentry_sdk
 
         sentry_sdk.init(dsn=settings.sentry_dsn)
 
     # 2. PostHog Setup
     if settings.posthog_api_key:
-        from lume.integrations.posthog import posthog
+        from worldline.integrations.posthog import posthog
 
         posthog.project_api_key = settings.posthog_api_key
         posthog.host = settings.posthog_host
 
     # 3. Langfuse Setup
     if settings.langfuse_public_key:
-        from lume.integrations.langfuse import langfuse
+        from worldline.integrations.langfuse import langfuse
 
         langfuse.Langfuse(
             public_key=settings.langfuse_public_key,
@@ -80,7 +80,11 @@ def _setup(settings: Optional["LoggingSettings"] = None) -> None:
     log_level = getattr(logging, log_level_name, logging.INFO)
 
     # Shared processors
-    from lume.service import add_otel_context, get_console_format, setup_otel_provider
+    from worldline.service import (
+        add_otel_context,
+        get_console_format,
+        setup_otel_provider,
+    )
 
     shared_processors: List[Any] = [
         _original_structlog.contextvars.merge_contextvars,
@@ -127,29 +131,29 @@ def _setup(settings: Optional["LoggingSettings"] = None) -> None:
         otlp_handler = LoggingHandler(level=log_level, logger_provider=logger_provider)
         root_logger.addHandler(otlp_handler)
 
-    _LUME_CONFIGURED = True
+    _WORLDLINE_CONFIGURED = True
 
 
 def get_logger(*args: Any, **kwargs: Any) -> Any:
-    if not _LUME_CONFIGURED:
+    if not _WORLDLINE_CONFIGURED:
         _setup()
     return _original_structlog.get_logger(*args, **kwargs)
 
 
 def getLogger(*args: Any, **kwargs: Any) -> Any:
-    if not _LUME_CONFIGURED:
+    if not _WORLDLINE_CONFIGURED:
         _setup()
     return _original_structlog.getLogger(*args, **kwargs)
 
 
 def wrap_logger(logger: Any, **kwargs: Any) -> Any:
-    if not _LUME_CONFIGURED:
+    if not _WORLDLINE_CONFIGURED:
         _setup()
     return _original_structlog.wrap_logger(logger, **kwargs)
 
 
 def _merge_configuration(kwargs: Dict[str, Any], once: bool = False) -> None:
-    if not _LUME_CONFIGURED:
+    if not _WORLDLINE_CONFIGURED:
         _setup()
 
     current_config = _original_structlog.get_config()

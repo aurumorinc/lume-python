@@ -1,17 +1,17 @@
-# src/lume/__init__.py
+# src/worldline/__init__.py
 __version__ = "2.0.0"
 
-from lume import config
-from lume import integrations
-from lume import service
+from worldline import config
+from worldline import integrations
+from worldline import service
 
-from lume.config import (
+from worldline.config import (
     LoggingSettings,
     generate_traceparent,
     resolve_traceparent,
     settings,
 )
-from lume.integrations import (
+from worldline.integrations import (
     get_windmill_traceparent,
     langfuse,
     observe,
@@ -19,10 +19,11 @@ from lume.integrations import (
     sentry_sdk,
     structlog,
 )
-from lume.service import (
+from worldline.service import (
     add_otel_context,
     get_console_format,
     remove_otel_context,
+    rich_renderer,
     setup_otel_provider,
 )
 
@@ -39,6 +40,7 @@ __all__ = [
     "posthog",
     "remove_otel_context",
     "resolve_traceparent",
+    "rich_renderer",
     "sentry_sdk",
     "service",
     "settings",

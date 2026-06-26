@@ -3,8 +3,8 @@ from concurrent.futures import ThreadPoolExecutor
 from io import StringIO
 from unittest import mock
 
-from lume.integrations import structlog
-from lume.config import LoggingSettings
+from worldline.integrations import structlog
+from worldline.config import LoggingSettings
 
 
 def test_thread_safe_contextvars():
@@ -13,7 +13,7 @@ def test_thread_safe_contextvars():
     under concurrent load.
     """
     # Reset structlog
-    structlog._LUME_CONFIGURED = False
+    structlog._WORLDLINE_CONFIGURED = False
     structlog.reset_defaults()
 
     # Arrange

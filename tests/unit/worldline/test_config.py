@@ -1,10 +1,10 @@
-# tests/unit/lume/test_config.py
+# tests/unit/worldline/test_config.py
 import os
 import re
 from unittest import mock
 import pytest
 
-from lume.config import LoggingSettings, generate_traceparent
+from worldline.config import LoggingSettings, generate_traceparent
 
 
 def test_default_settings():

@@ -49,7 +49,7 @@ def in_memory_otel_exporters():
 
     # Mock only the exporters. Let the real BatchProcessors use our InMemory exporters
     with (
-        mock.patch("lume.service.OTLPLogExporter", return_value=log_exporter),
+        mock.patch("worldline.service.OTLPLogExporter", return_value=log_exporter),
         mock.patch(
             "opentelemetry.exporter.otlp.proto.http.trace_exporter.OTLPSpanExporter",
             return_value=span_exporter,

@@ -1,4 +1,4 @@
-# src/lume/service.py
+# src/worldline/service.py
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -10,7 +10,7 @@ from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from rich.logging import RichHandler
 
-from lume.config import settings
+from worldline.config import settings
 
 
 def remove_otel_context(

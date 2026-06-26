@@ -1,9 +1,9 @@
-# tests/unit/lume/test_service.py
+# tests/unit/worldline/test_service.py
 import logging
 from unittest import mock
 
 
-from lume.service import (
+from worldline.service import (
     add_otel_context,
     remove_otel_context,
     setup_otel_provider,
@@ -21,7 +21,7 @@ def test_add_otel_context_with_active_span():
         ctx = span.get_span_context()
         event_dict = {}
 
-        with mock.patch("lume.service.trace.get_current_span", return_value=span):
+        with mock.patch("worldline.service.trace.get_current_span", return_value=span):
             # Act
             result = add_otel_context(logging.getLogger(), "info", event_dict)
 
@@ -30,7 +30,7 @@ def test_add_otel_context_with_active_span():
             assert result["span_id"] == format(ctx.span_id, "016x")
 
 
-@mock.patch("lume.service.settings")
+@mock.patch("worldline.service.settings")
 def test_add_otel_context_fallback_to_settings(mock_settings):
     # Arrange
     mock_settings.trace_id = "settings_trace"
@@ -46,7 +46,7 @@ def test_add_otel_context_fallback_to_settings(mock_settings):
     assert result["span_id"] == "settings_span"
 
 
-@mock.patch("lume.service.settings")
+@mock.patch("worldline.service.settings")
 def test_add_otel_context_empty_event_dict(mock_settings):
     """Test adding context to an empty dict still adds trace_id and span_id."""
     # Arrange
@@ -61,7 +61,7 @@ def test_add_otel_context_empty_event_dict(mock_settings):
     assert result == {"trace_id": "1", "span_id": "2"}
 
 
-@mock.patch("lume.service.settings")
+@mock.patch("worldline.service.settings")
 def test_setup_otel_provider_no_endpoint(mock_settings):
     # Arrange
     mock_settings.is_windmill_env = False
@@ -73,7 +73,7 @@ def test_setup_otel_provider_no_endpoint(mock_settings):
     assert provider is None
 
 
-@mock.patch("lume.service.settings")
+@mock.patch("worldline.service.settings")
 def test_setup_otel_provider_with_endpoint(mock_settings):
     # Arrange
     mock_settings.is_windmill_env = True

@@ -1,9 +1,9 @@
 import os
 from unittest import mock
 
-from lume.config import LoggingSettings
-from lume.integrations import structlog
-from lume import observe
+from worldline.config import LoggingSettings
+from worldline.integrations import structlog
+from worldline import observe
 
 
 @mock.patch.dict(
@@ -20,9 +20,9 @@ from lume import observe
     },
     clear=True,
 )
-@mock.patch("lume.integrations.sentry.sentry_sdk", create=True)
-@mock.patch("lume.integrations.posthog.posthog", create=True)
-@mock.patch("lume.integrations.langfuse.langfuse.Langfuse", create=True)
+@mock.patch("worldline.integrations.sentry.sentry_sdk", create=True)
+@mock.patch("worldline.integrations.posthog.posthog", create=True)
+@mock.patch("worldline.integrations.langfuse.langfuse.Langfuse", create=True)
 def test_telemetry_integration(
     mock_langfuse, mock_posthog, mock_sentry, in_memory_otel_exporters
 ):
@@ -32,14 +32,14 @@ def test_telemetry_integration(
     logging events into W3C compliant OpenTelemetry LogRecords and spans.
     """
     # Reset structlog
-    structlog._LUME_CONFIGURED = False
+    structlog._WORLDLINE_CONFIGURED = False
     structlog.reset_defaults()
 
     # Arrange
     settings = LoggingSettings()
 
     # Act
-    with mock.patch("lume.service.settings", settings):
+    with mock.patch("worldline.service.settings", settings):
         # Trigger lazy setup with explicitly mocked settings
         structlog._setup(settings)
 

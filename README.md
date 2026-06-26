@@ -1,15 +1,15 @@
-# Lume
+# Worldline
 
-Lume is a unified observability and telemetry bootstrapper for Python. It provides structured, environment-agnostic logging alongside native vendor facades for Sentry, PostHog, Langfuse, and OpenTelemetry. Built on top of `structlog`, `rich`, and `opentelemetry`, Lume allows you to configure your entire observability stack with a single function call while maintaining direct access to underlying native SDKs.
+Worldline is a unified observability and telemetry bootstrapper for Python. It provides structured, environment-agnostic logging alongside native vendor facades for Sentry, PostHog, Langfuse, and OpenTelemetry. Built on top of `structlog`, `rich`, and `opentelemetry`, Worldline allows you to configure your entire observability stack with a single function call while maintaining direct access to underlying native SDKs.
 
 ## Features
 
 - **Unified Bootstrapper**: One call to `setup_logging()` configures your entire telemetry stack (Logging, Sentry, PostHog, Langfuse, and OpenTelemetry) based on the presence of environment variables.
-- **Submodule Vendor Re-export**: Access Sentry, PostHog, and Langfuse natively directly through `lume` (e.g., `from lume import sentry_sdk`). This preserves original typings and API surfaces while keeping dependency versions centralized in this package.
+- **Submodule Vendor Re-export**: Access Sentry, PostHog, and Langfuse natively directly through `lume` (e.g., `from worldline import sentry_sdk`). This preserves original typings and API surfaces while keeping dependency versions centralized in this package.
 - **Structured Logging**: Powered by `structlog` for consistent, machine-readable logs.
 - **Decoupled Transports**: 
   - **Terminal Transport (stdout)**: Always active, beautifully formatted with `rich`.
-  - **Bifurcated OpenTelemetry (Network)**: OTLP exporters spin up *strictly* when running inside Windmill (detected via `WM_TOKEN` and `WM_WORKSPACE`), ensuring no idle exporters in local/dev environments.
+  - **Bifurcated OpenTelemetry (Network)**: OTLP exporters spin up *strictly* when running inside Windmill (detected via `WINDMILL_TOKEN` and `WINDMILL_WORKSPACE`), ensuring no idle exporters in local/dev environments.
 - **Context Injection**: Automatically injects `trace_id` and `span_id` from OpenTelemetry into log records.
 - **Configuration via Env Vars**: Easy configuration using `pydantic-settings`.
 
@@ -18,10 +18,10 @@ Lume is a unified observability and telemetry bootstrapper for Python. It provid
 You can install this package directly from the GitHub repository using `pip`:
 
 ```bash
-pip install git+https://github.com/aurumorinc/python-logging.git
+pip install git+https://github.com/aurumorinc/worldline-python.git
 ```
 
-*(Note: While the repository is `python-logging`, the importable package is `lume`)*
+*(Note: While the repository is `worldline-python`, the importable package is `worldline`)*
 
 ## Configuration
 
@@ -36,9 +36,9 @@ Configuration is handled via environment variables (or a `.env` file) using `pyd
 | `LANGFUSE_PUBLIC_KEY` | `None` | Public Key for Langfuse. |
 | `LANGFUSE_SECRET_KEY` | `None` | Secret Key for Langfuse. If both keys are provided, Langfuse is initialized. |
 | `LANGFUSE_HOST` | `https://cloud.langfuse.com` | Host URL for Langfuse. |
-| `WM_TOKEN` | `None` | Windmill Workspace Token. Required for Windmill OTEL. |
-| `WM_WORKSPACE` | `None` | Windmill Workspace Name. Required for Windmill OTEL. |
-| `WM_BASE_URL` | `None` | Base URL for Windmill, used for resolving OTEL endpoints. |
+| `WINDMILL_TOKEN` | `None` | Windmill Workspace Token. Required for Windmill OTEL. |
+| `WINDMILL_WORKSPACE` | `None` | Windmill Workspace Name. Required for Windmill OTEL. |
+| `WINDMILL_BASE_URL` | `None` | Base URL for Windmill, used for resolving OTEL endpoints. |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `None` | Fallback OTLP endpoint for exporting traces. |
 | `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`| `None` | Fallback specific OTLP endpoint for exporting logs. |
 
@@ -52,37 +52,25 @@ If your project already uses `pydantic-settings`, you can easily merge the telem
 
 ```python
 from pydantic_settings import BaseSettings
-from lume.config import LoggingSettings
-from lume.logging import setup_logging
+from worldline import LoggingSettings
 
 # Inherit from LoggingSettings to include logging configuration
-class AppSettings(LoggingSettings, BaseSettings):
+class Settings(LoggingSettings, BaseSettings):
     app_name: str = "my-awesome-app"
     database_url: str
 
 # Instantiate your combined settings
-settings = AppSettings()
+settings = Settings()
 
-# Pass the combined settings to setup_logging
-setup_logging(settings)
 ```
 
 ### Basic Logging Usage
 
-**In your entry point file (e.g., `main.py`):**
 ```python
-from lume.logging import setup_logging
-
-# 1. Initialize global logging and telemetry state (call exactly once)
-setup_logging()
-```
-
-**In any other file in your project:**
-```python
-from lume.logging import get_logger
+from worldline import structlog
 
 # 2. Get a logger instance for this module
-logger = get_logger(__name__)
+logger = structlog.get_logger(__name__)
 
 # 3. Log messages with structured data
 logger.info("user_logged_in", user_id=123, ip_address="192.168.1.1")
@@ -98,9 +86,9 @@ except ZeroDivisionError:
 You can bind context variables to a logger so they are included in all subsequent log calls from that logger.
 
 ```python
-from lume.logging import get_logger
+from worldline import structlog
 
-logger = get_logger(__name__).bind(request_id="req-abc-123")
+logger = structlog.get_logger(__name__).bind(request_id="req-abc-123")
 
 logger.info("processing_request") 
 # Includes: request_id="req-abc-123"
@@ -111,10 +99,10 @@ logger.info("request_completed", status=200)
 
 ### Vendor Facades
 
-`lume` exports Sentry, PostHog, and Langfuse directly. You do not need to install these dependencies manually in your consumer application; they are natively managed and exposed by `lume`.
+`worldline` exports Sentry, PostHog, and Langfuse directly. You do not need to install these dependencies manually in your consumer application; they are natively managed and exposed by `worldline`.
 
 ```python
-from lume import sentry_sdk, posthog, langfuse, observe
+from worldline import sentry_sdk, posthog, langfuse, observe
 
 # Sentry
 sentry_sdk.capture_message("Something went wrong")
@@ -130,13 +118,13 @@ def my_llm_call(prompt):
 
 ### OpenTelemetry & Windmill Integration
 
-If you configure `WM_TOKEN` and `WM_WORKSPACE`, logs and traces will automatically be exported to the Windmill platform.
+If you configure `WINDMILL_TOKEN` and `WINDMILL_WORKSPACE`, logs and traces will automatically be exported to the Windmill platform.
 
-`lume` will also automatically extract the active `trace_id` and `span_id` and inject them into your log records. When running inside Windmill, it automatically extracts tracing contexts from the environment.
+`worldline` will also automatically extract the active `trace_id` and `span_id` and inject them into your log records. When running inside Windmill, it automatically extracts tracing contexts from the environment.
 
 ## Terminal Output
 
-Lume uses `rich.logging.RichHandler` for beautiful, structured formatting in the terminal.
+Worldline uses `rich.logging.RichHandler` for beautiful, structured formatting in the terminal.
 
 **Configuration:**
 ```bash
