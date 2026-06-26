@@ -1,4 +1,4 @@
-# Changelog v4.0.0
+# Changelog v2.0.1
 
 ## Breaking Changes
 
@@ -10,5 +10,5 @@
 ## Other
 
 * **Version Bump**
-  The package version has been updated to 4.0.0.
+  The package version has been updated to 2.0.1.
   * **Commit:** [bc5d409](https://github.com/aurumorinc/worldline-python/commit/bc5d409a)
