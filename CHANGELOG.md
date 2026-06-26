@@ -1,10 +1,8 @@
-# Changelog v3.0.0
+# Changelog v4.0.0
 
 ## Breaking Changes
 
-* **Project Namespace Migration**
-  The project has been renamed from `lume` to `worldline`. This change affects all package imports, module paths, and configuration keys.
-  * **Migration Guide:**
-    * Update all import statements in your codebase from `lume/...` to `worldline/...`.
-    * Update any configuration files or environment variables that previously referenced `lume` to use the new `worldline` namespace.
-  * **Commits:** [d2e265a](https://github.com/aurumorinc/lume-python/commit/d2e265ae), [2c52b6a](https://github.com/aurumorinc/lume-python/commit/2c52b6ae)
+* **Renaming of Windmill Environment Variables**
+  All environment variables prefixed with `WM_` have been renamed to use the `WINDMILL_` prefix to align with updated naming conventions.
+  * **Migration Guide:** Update your deployment configurations (e.g., Docker Compose, Kubernetes ConfigMaps, or `.env` files) by replacing the `WM_` prefix with `WINDMILL_` for all Windmill-related settings.
+  * **Commits:** [ea61e4a](https://github.com/aurumorinc/worldline-python/commit/ea61e4a1), [e0a3fb0](https://github.com/aurumorinc/worldline-python/commit/e0a3fb02)
